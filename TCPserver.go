@@ -12,6 +12,8 @@ const (
 	CONN_TYPE = "tcp"
 )
 
+const a = 1
+
 func main() {
 	// Listen for incoming connections.
 	l, err := net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
