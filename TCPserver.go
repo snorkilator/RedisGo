@@ -10,9 +10,8 @@ const (
 	CONN_HOST = "localhost"
 	CONN_PORT = "3333"
 	CONN_TYPE = "tcp"
+	a         = 1
 )
-
-const a = 1
 
 func main() {
 	// Listen for incoming connections.
