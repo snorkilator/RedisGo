@@ -27,7 +27,7 @@ func main() {
 	for {
 
 		fmt.Println(I)
-		I++
+		//	I++
 		// Listen for an incoming connection.
 		conn, err := l.Accept()
 		if err != nil {
