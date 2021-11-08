@@ -1,4 +1,4 @@
-package main
+package tcp
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ const (
 	a         = 1
 )
 
-func main() {
+func tcp() {
 	// Listen for incoming connections.
 	l, err := net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
 	if err != nil {
