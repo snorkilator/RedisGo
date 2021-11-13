@@ -14,16 +14,18 @@ func receiver() (s string, err error) {
 	return
 }
 
+//sends information back to client
 func responder(s string) error {
 	fmt.Println(s)
 	return nil
 }
 
-var input = `*4\r\n$3\r\nset\r\n$1\r\na\r\n$2\r\n21\r\n$2\r\ner\r\n`
+var input []byte = []byte(`*3\r\n$3\r\nset\r\n$1\r\na\r\n$2\r\n23\r\n`)
 
 //Takes array of bulk string, and outputs a slice of strings containing the elements of the array
-func parser(s string) ([]string, error) {
-	var parsed []string
+func parser(b []byte) ([][]byte, error) {
+	s := string(b) // get rid of this unnecessary copy operation, don't want to have to copy large data if it is unnecessary to do so
+	var parsed [][]byte
 
 	if s[0] != byte('*') {
 		return nil, fmt.Errorf("input is not Array of Bulk Strings type: want *, got %v", string(s[0]))
@@ -34,10 +36,10 @@ func parser(s string) ([]string, error) {
 		return nil, err
 	}
 
-	for i := 0; i < arrayLen; i, currentIndex = i+1, currentIndex+4 {
+	for i := 0; i < arrayLen && currentIndex < len(s); i, currentIndex = i+1, currentIndex+4 {
 
 		if s[currentIndex] != '$' {
-			return nil, fmt.Errorf("Expected type symbol '$' for element %v in array but got %v at index %v", i+1, string(s[currentIndex]), currentIndex)
+			return nil, fmt.Errorf("Parser: Expected type symbol '$' for element %v in array but got %v at index %v", i+1, string(s[currentIndex]), currentIndex)
 		}
 		currentIndex++
 
@@ -47,12 +49,20 @@ func parser(s string) ([]string, error) {
 			return nil, err
 		}
 
-		tempStr := s[currentIndex : currentIndex+strLen]
-		currentIndex += strLen
-		parsed = append(parsed, tempStr)
-		if s[currentIndex:currentIndex+4] != `\r\n` {
-			return nil, fmt.Errorf(`expected \r\n after %v but found %v starting at index %v`, parsed, s[currentIndex:currentIndex+4], currentIndex)
+		if currentIndex+strLen > len(s)-1 {
+			return nil, fmt.Errorf(`Parser: %v indexed element does not exist in array`, i+1)
 		}
+		tempStr := b[currentIndex : currentIndex+strLen]
+		currentIndex += strLen
+
+		if len(s)-1 < currentIndex+3 {
+			return nil, fmt.Errorf(`Parser: array element %v does not terminate with \r\n`, i)
+		}
+		if s[currentIndex:currentIndex+4] != `\r\n` {
+			return nil, fmt.Errorf(`Parser: expected \r\n but found %v starting at index %v`, s[currentIndex:currentIndex+4], currentIndex)
+		}
+		parsed = append(parsed, tempStr)
+
 	}
 	return parsed, nil
 }
@@ -65,6 +75,9 @@ func getLen(i int, s *string) (int, int, error) {
 
 	found := false
 	for ; !found; i++ {
+		if len(*s)-1 < i+3 {
+			return 0, 0, fmt.Errorf(`getLen: Last element in array does not terminate with \r\n`)
+		}
 		if (*s)[i:i+4] == `\r\n` {
 			found = true
 			endofNum = i - 1
@@ -74,7 +87,7 @@ func getLen(i int, s *string) (int, int, error) {
 
 	len, err := strconv.Atoi(lenS)
 	if err != nil {
-		return 0, 0, fmt.Errorf("Array length is not valid number: want number but got %v", lenS)
+		return 0, 0, fmt.Errorf("getLen: Array length is not valid number: want number but got %v", lenS)
 	}
 
 	return len, i + 3, nil
@@ -101,20 +114,19 @@ func set(*[]string) {
 func get(*[]string) {}
 
 func main() {
-	// s, _ := receiver()
-	// fmt.Printf("%v", s)
-	input, err := receiver()
-	if err != nil {
-		fmt.Println("receiver error:", err)
-	}
+
+	// input, err := receiver()
+	// if err != nil {
+	// 	fmt.Println("receiver error:", err)
+	// }
 
 	s, err := parser(input)
 	if err != nil {
 		fmt.Println(err)
 	}
-
-	err = commandHandler(&s)
-	if err != nil {
-		fmt.Println("commanderHandler():", err)
-	}
+	fmt.Println(s)
+	// err = commandHandler(&s)
+	// if err != nil {
+	// 	fmt.Println("commanderHandler():", err)
+	// }
 }

@@ -3,23 +3,3 @@ Command receiver: takes newline split input from standard input and returns comm
 Implement commands: Takes string and decodes it and finds out what commands to run and runs them
 if commands were able to be run, returns RESP okay to stdout
 if functions return errors, returns error message to RESP
-
-How to structure database?
-
-What does the database need to do?
-- store different datatypes
-- a map with string for key and a pointer to the data
-	pointer can't point to specific type, maps only support one type of mapping in a map (string:string or string:struct etc)
-
-
-Redis stores keys pointing to values. Keys can be any binary value up to a reasonable size (using short ASCII strings is recommended for readability and debugging purposes). Values are one of five native Redis data types.
-
-1.strings — a sequence of binary safe bytes up to 512 MB
-
-2.hashes — a collection of key value pairs
-
-3.lists — an in-insertion-order collection of strings
-
-4.sets — a collection of unique strings with no ordering
-
-5.sorted sets — a collection of unique strings ordered by user defined scoring
