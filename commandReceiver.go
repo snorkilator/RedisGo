@@ -7,6 +7,8 @@ import (
 	"strconv"
 )
 
+var db map[string][]byte
+
 //receives command from client and returns it as a string
 func receiver() (s string, err error) {
 	reader := bufio.NewReader(os.Stdin)
@@ -20,7 +22,7 @@ func responder(s string) error {
 	return nil
 }
 
-var input []byte = []byte(`*3\r\n$3\r\nset\r\n$1\r\na\r\n$2\r\n23\r\n`)
+var input []byte = []byte(`*2\r\n$3\r\nget\r\n$1\r\na\r\n`)
 
 //Takes array of bulk string, and outputs a slice of strings containing the elements of the array
 func parser(b []byte) ([][]byte, error) {
@@ -93,27 +95,56 @@ func getLen(i int, s *string) (int, int, error) {
 	return len, i + 3, nil
 }
 
-func commandHandler(slc *[]string) error {
-	switch (*slc)[0] {
+func commandHandler(slc *[][]byte) error {
+	switch string((*slc)[0]) {
 	case "set":
-		set(slc)
+		fmt.Println("set")
+		err := set(slc)
+		if err != nil {
+			return err
+		}
 	case "get":
-		get(slc)
+		fmt.Println("get")
+
+		err := get(slc)
+		if err != nil {
+			return err
+		}
 	default:
-		responder("No such command " + (*slc)[0] + ", try SET or GET")
+		responder("No such command " + string((*slc)[0]) + ", try SET or GET")
 	}
 
 	return nil
 }
 
-func set(*[]string) {
-	// check that there are three elements
-	//		throw error if false
-	//
+// puts input into db
+func set(slc *[][]byte) error {
+	len := len(*slc)
+	if len != 3 {
+		return fmt.Errorf("set: wrong number of arguments. want 3 but got %v", len)
+	}
+	db[string((*slc)[1])] = (*slc)[2]
+	responder("OK")
+	return nil
 }
-func get(*[]string) {}
+
+// finds and sends input from db
+func get(slc *[][]byte) error {
+	len := len(*slc)
+	if len != 2 {
+		return fmt.Errorf("set: wrong number of arguments. want 3 but got %v", len)
+	}
+	v, ok := db[string((*slc)[1])]
+	if !ok {
+		return fmt.Errorf("%v does not exist in database", (*slc)[1])
+	}
+	responder(string(v)) // returns string, not byte
+
+	return nil
+}
 
 func main() {
+	db = make(map[string][]byte)
 
 	// input, err := receiver()
 	// if err != nil {
@@ -125,8 +156,8 @@ func main() {
 		fmt.Println(err)
 	}
 	fmt.Println(s)
-	// err = commandHandler(&s)
-	// if err != nil {
-	// 	fmt.Println("commanderHandler():", err)
-	// }
+	err = commandHandler(&s)
+	if err != nil {
+		fmt.Println("commanderHandler():", err)
+	}
 }
