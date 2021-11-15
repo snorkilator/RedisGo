@@ -6,4 +6,3 @@ package
 //  gets length of array
 //		starting at 2nd byte, looks for byte sequence that represents \r\n
 //		stores as int, 2nd byte to \r\n exclusive
-//		
