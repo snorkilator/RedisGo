@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 ! Fix parser, so it doesn't copy input during byte slice to string conversion
 
 
