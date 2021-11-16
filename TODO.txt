@@ -1,12 +1,4 @@
-! Fix parser, so it doesn't copy input during byte slice to string conversion
-
-
+! Fix parser, so it doesn't copy input during []byte to string conversion
 
 Create TCP functionality, to allow for receiving and sending data
     dealing with multiple client connections
-
-Create CLI functionality
-
-find a way to send raw binary instead of characters
-
-Nice to haves: GUI web interface for receiving and sending
