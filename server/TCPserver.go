@@ -1,6 +1,7 @@
-package tcp
+package server
 
 import (
+	"bufio"
 	"fmt"
 	"net"
 	"os"
@@ -13,7 +14,7 @@ const (
 	a         = 1
 )
 
-func tcp() {
+func TCP() {
 	// Listen for incoming connections.
 	l, err := net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
 	if err != nil {
@@ -23,11 +24,9 @@ func tcp() {
 	// Close the listener when the application closes.
 	defer l.Close()
 	fmt.Println("Listening on " + CONN_HOST + ":" + CONN_PORT)
-	I := 0
+	ID := 0
 	for {
 
-		fmt.Println(I)
-		I++
 		// Listen for an incoming connection.
 		conn, err := l.Accept()
 		if err != nil {
@@ -35,23 +34,17 @@ func tcp() {
 			os.Exit(1)
 		}
 		// Handle connections in a new goroutine.
-		go handleRequest(conn, I)
+		go handleRequest(conn, ID)
+		ID++
 	}
 }
 
 // Handles incoming requests.
-func handleRequest(conn net.Conn, i int) {
-	// Make a buffer to hold incoming data.
-	buf := make([]byte, 1000)
-	// Read the incoming connection into the buffer.
-	_, err := conn.Read(buf)
-	fmt.Println(string(buf), len(string(buf)))
-	if err != nil {
-		fmt.Println("Error reading:", err.Error())
+func handleRequest(conn net.Conn, ID int) {
+
+	for {
+		buf := bufio.NewReader(conn)
+		data, _ := buf.ReadBytes(10)
+		fmt.Println(data, "received from:", conn.RemoteAddr(), "connection number:", ID)
 	}
-	// Send a response back to person contacting us.
-	conn.Write([]byte("Message received.\n test"))
-	// Close the connection when you're done with it.
-	fmt.Println("closing", i)
-	conn.Close()
 }

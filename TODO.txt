@@ -1,19 +1,12 @@
 ! Fix parser, so it doesn't copy input during byte slice to string conversion
 
 
-build set and get functions
-        they need to be compatible with a possible overhaul of the underlying datastructure:
-            I will start by using the built in map type to store the data
-            use a cached conversion from []byte and string for my key and []byte for value
-            In the future, I may implement my own hash table that natively supports type []byte as key 
-        Find out if large array of bytes is a bad choice for map key type
 
 Create TCP functionality, to allow for receiving and sending data
+    dealing with multiple client connections
 
 Create CLI functionality
 
 find a way to send raw binary instead of characters
 
 Nice to haves: GUI web interface for receiving and sending
-
-what is ther error path
