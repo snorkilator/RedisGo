@@ -1,12 +1,8 @@
 ! Fix parser, so it doesn't copy input during byte slice to string conversion
 
 
+send responses back to client
+format responses using resp
 
-Create TCP functionality, to allow for receiving and sending data
-    dealing with multiple client connections
-
-Create CLI functionality
-
-find a way to send raw binary instead of characters
-
-Nice to haves: GUI web interface for receiving and sending
+check if there are bugs
+    Does queue work correctly

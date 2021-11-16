@@ -14,7 +14,7 @@ const (
 	a         = 1
 )
 
-func TCP() {
+func TCP(a chan []byte) {
 	// Listen for incoming connections.
 	l, err := net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
 	if err != nil {
@@ -25,6 +25,7 @@ func TCP() {
 	defer l.Close()
 	fmt.Println("Listening on " + CONN_HOST + ":" + CONN_PORT)
 	ID := 0
+
 	for {
 
 		// Listen for an incoming connection.
@@ -34,17 +35,18 @@ func TCP() {
 			os.Exit(1)
 		}
 		// Handle connections in a new goroutine.
-		go handleRequest(conn, ID)
+		go handleRequest(conn, ID, a)
 		ID++
 	}
 }
 
 // Handles incoming requests.
-func handleRequest(conn net.Conn, ID int) {
+func handleRequest(conn net.Conn, ID int, a chan []byte) {
 
 	for {
 		buf := bufio.NewReader(conn)
 		data, _ := buf.ReadBytes(10)
+		a <- data
 		fmt.Println(data, "received from:", conn.RemoteAddr(), "connection number:", ID)
 	}
 }

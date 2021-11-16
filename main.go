@@ -10,11 +10,11 @@ import (
 
 var db map[string][]byte
 
-//receives command from client and returns it as a string
-func receiver() (s string, err error) {
+//receives from standard in
+func receiver() ([]byte, error) {
 	reader := bufio.NewReader(os.Stdin)
-	s, err = reader.ReadString('\n')
-	return
+	s, err := reader.ReadString('\n')
+	return []byte(s), err
 }
 
 //sends information back to client
@@ -23,7 +23,7 @@ func responder(s string) error {
 	return nil
 }
 
-var input []byte = []byte(`*2\r\n$3\r\nget\r\n$1\r\na\r\n`)
+var input []byte = []byte(`*3\r\n$3\r\nset\r\n$1\r\na\r\n$1\r\nb\r\n`)
 
 //Takes array of bulk string, and outputs a slice of strings containing the elements of the array
 func parser(b []byte) ([][]byte, error) {
@@ -145,15 +145,14 @@ func get(slc *[][]byte) error {
 }
 
 func main() {
-	server.TCP()
+	a := make(chan []byte)
 	db = make(map[string][]byte)
-	for {
-		input, err := receiver()
-		if err != nil {
-			fmt.Println("receiver error:", err)
-		}
 
-		s, err := parser([]byte(input))
+	go server.TCP(a)
+	for {
+		input := <-a
+
+		s, err := parser(input)
 		if err != nil {
 			fmt.Println(err)
 		}
