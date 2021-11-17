@@ -163,3 +163,5 @@ func main() {
 		}
 	}
 }
+
+func fmtData([][]byte) ([]byte, error) { return nil, nil }

@@ -3,6 +3,8 @@
 
 send responses back to client
 format responses using resp
+    build thing that takes command and arguments and turns that into resp string
+
 
 check if there are bugs
     Does queue work correctly
