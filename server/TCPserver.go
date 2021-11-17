@@ -11,10 +11,10 @@ const (
 	CONN_HOST = "localhost"
 	CONN_PORT = "3333"
 	CONN_TYPE = "tcp"
-	a         = 1
 )
 
-func TCP(a chan []byte) {
+// receives tcp connections and passes them to handler
+func Run(a chan ClientMHandle) {
 	// Listen for incoming connections.
 	l, err := net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
 	if err != nil {
@@ -40,13 +40,19 @@ func TCP(a chan []byte) {
 	}
 }
 
+type ClientMHandle = struct {
+	Data []byte
+	Conn net.Conn
+}
+
 // Handles incoming requests.
-func handleRequest(conn net.Conn, ID int, a chan []byte) {
+func handleRequest(conn net.Conn, ID int, a chan ClientMHandle) {
 
 	for {
 		buf := bufio.NewReader(conn)
 		data, _ := buf.ReadBytes(10)
-		a <- data
-		fmt.Println(data, "received from:", conn.RemoteAddr(), "connection number:", ID)
+		ClientMHandle := ClientMHandle{data, conn}
+		a <- ClientMHandle
+		fmt.Println("server.Run():", string(data), "received from:", conn.RemoteAddr(), "connection number:", ID)
 	}
 }

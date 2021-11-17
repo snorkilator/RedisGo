@@ -1,31 +1,44 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"os"
+	"net"
 	"redis/server"
 	"strconv"
 )
 
 var db map[string][]byte
 
-//receives from standard in
-func receiver() ([]byte, error) {
-	reader := bufio.NewReader(os.Stdin)
-	s, err := reader.ReadString('\n')
-	return []byte(s), err
+// setCommand = *3\r\n$3\r\nset\r\n$1\r\na\r\n$1\r\nb\r\n
+// getCommand = *2\r\n$3\r\nget\r\n$1\r\na\r\n
+
+func main() {
+	a := make(chan server.ClientMHandle)
+	db = make(map[string][]byte)
+
+	go server.Run(a)
+	for {
+		cMessage := <-a
+
+		s, err := parser(cMessage.Data)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		resp, err := commandHandler(&s)
+		if err != nil {
+			// add error sender
+			fmt.Println(err)
+		}
+
+		err = responder(resp, cMessage.Conn)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
 }
 
-//sends information back to client
-func responder(s string) error {
-	fmt.Println(s)
-	return nil
-}
-
-var input []byte = []byte(`*3\r\n$3\r\nset\r\n$1\r\na\r\n$1\r\nb\r\n`)
-
-//Takes array of bulk string, and outputs a slice of strings containing the elements of the array
+//Takes RESP array of bulk strings, and outputs a slice of strings containing the elements of the array
 func parser(b []byte) ([][]byte, error) {
 	s := string(b) // get rid of this unnecessary copy operation, don't want to have to copy large data if it is unnecessary to do so
 	var parsed [][]byte
@@ -96,72 +109,70 @@ func getLen(i int, s *string) (int, int, error) {
 	return len, i + 3, nil
 }
 
-func commandHandler(slc *[][]byte) error {
+//reads first element of slc and executes command found there, or returns error
+// passes response from command back to caller
+func commandHandler(slc *[][]byte) (resp [][]byte, err error) {
 	switch string((*slc)[0]) {
 	case "set":
 		fmt.Println("set")
-		err := set(slc)
-		if err != nil {
-			return err
-		}
+		resp, err = set(slc)
 	case "get":
 		fmt.Println("get")
-
-		err := get(slc)
-		if err != nil {
-			return err
-		}
+		resp, err = get(slc)
 	default:
-		responder("No such command " + string((*slc)[0]) + ", try SET or GET")
+		err = fmt.Errorf("No such command " + string((*slc)[0]) + ", try SET or GET")
 	}
-
-	return nil
+	return
 }
 
 // puts input into db
-func set(slc *[][]byte) error {
+func set(slc *[][]byte) ([][]byte, error) {
+	resp := [][]byte{}
 	len := len(*slc)
 	if len != 3 {
-		return fmt.Errorf("set: wrong number of arguments. want 3 but got %v", len)
+		return nil, fmt.Errorf("set: wrong number of arguments. want 3 but got %v", len)
 	}
 	db[string((*slc)[1])] = (*slc)[2]
-	responder("OK")
-	return nil
+
+	resp = append(resp, []byte("OK"))
+	return resp, nil
 }
 
 // finds and sends input from db
-func get(slc *[][]byte) error {
+func get(slc *[][]byte) ([][]byte, error) {
 	len := len(*slc)
+	resp := [][]byte{}
 	if len != 2 {
-		return fmt.Errorf("set: wrong number of arguments. want 3 but got %v", len)
+		return nil, fmt.Errorf("set: wrong number of arguments. want 3 but got %v", len)
 	}
 	v, ok := db[string((*slc)[1])]
 	if !ok {
-		return fmt.Errorf("%v does not exist in database", (*slc)[1])
+		return nil, fmt.Errorf("%v does not exist in database", (*slc)[1])
 	}
-	responder(string(v)) // returns string, not byte
-
-	return nil
+	resp = append(resp, v)
+	return resp, nil
 }
 
-func main() {
-	a := make(chan []byte)
-	db = make(map[string][]byte)
-
-	go server.TCP(a)
-	for {
-		input := <-a
-
-		s, err := parser(input)
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		err = commandHandler(&s)
-		if err != nil {
-			fmt.Println("commanderHandler():", err)
-		}
-	}
+//sends information back to client
+func responder(slc [][]byte, conn net.Conn) error {
+	toSend, err := fmtData(slc)
+	fmt.Println("sent:", string(toSend))
+	conn.Write(toSend)
+	return err
 }
 
-func fmtData([][]byte) ([]byte, error) { return nil, nil }
+//formats input as resp array of bulk strings
+func fmtData(slc [][]byte) ([]byte, error) {
+	delim := `\r\n`
+	elCount := fmt.Sprint(len(slc))
+	output := []byte(`*` + elCount + delim)
+
+	for _, e := range slc {
+		slcLen := fmt.Sprint(len(e))
+		elBegin := "$" + slcLen + delim
+		output = append(output, []byte(elBegin)...)
+		output = append(output, e...)
+		output = append(output, []byte(delim)...)
+	}
+	return output, nil
+}
