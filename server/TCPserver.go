@@ -13,7 +13,7 @@ const (
 	CONN_TYPE = "tcp"
 )
 
-// receives tcp connections and passes them to handler
+// receives tcp connections and passes them to handler in seperate thread
 func Run(a chan ClientMHandle) {
 	// Listen for incoming connections.
 	l, err := net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
