@@ -13,33 +13,35 @@ var db map[string][]byte
 // getCommand = *2\r\n$3\r\nget\r\n$1\r\na\r\n
 
 func main() {
-	a := make(chan server.ClientMHandle)
+	messageCh := make(chan server.ClientMHandle)
 	db = make(map[string][]byte)
 
-	go server.Run(a)
-	for {
-		cMessage := <-a
+	go server.Run(messageCh)
+	for msg := range messageCh {
 
-		s, err := parser(cMessage.Data)
+		s, err := parse(msg.Data)
 		if err != nil {
 			fmt.Println(err)
+			continue
 		}
 
-		resp, err := commandHandler(&s)
+		resp, err := handleCommand(&s)
 		if err != nil {
 			// add error sender
 			fmt.Println(err)
+			continue
 		}
 
-		err = responder(resp, cMessage.Conn)
+		err = respond(resp, msg.Conn)
 		if err != nil {
 			fmt.Println(err)
+			continue
 		}
 	}
 }
 
-//Takes RESP array of bulk strings, and outputs a slice of strings containing the elements of the array
-func parser(b []byte) ([][]byte, error) {
+//Parse takes RESP array of bulk strings, and outputs a slice of []bytes containing the elements of the array
+func parse(b []byte) ([][]byte, error) {
 	s := string(b) // get rid of this unnecessary copy operation, don't want to have to copy large data if it is unnecessary to do so
 	var parsed [][]byte
 
@@ -83,8 +85,7 @@ func parser(b []byte) ([][]byte, error) {
 	return parsed, nil
 }
 
-//Starts at some index and checks for \r\n. If it finds that, it will return a string starting at the endex and ending before the \r\n.
-//Also returns index value after \r\n
+//GetLen is a utility for parse(). It finds the indicator of length for arrays and bulk strings within arrays. Returns length as int as well as the updated index.
 func getLen(i int, s *string) (int, int, error) {
 	beginStr := i
 	var endofNum int
@@ -109,9 +110,8 @@ func getLen(i int, s *string) (int, int, error) {
 	return len, i + 3, nil
 }
 
-//reads first element of slc and executes command found there, or returns error
-// passes response from command back to caller
-func commandHandler(slc *[][]byte) (resp [][]byte, err error) {
+// HandleCommand executes command with listed arguments and passes response from command back to caller.
+func handleCommand(slc *[][]byte) (resp [][]byte, err error) {
 	switch string((*slc)[0]) {
 	case "set":
 		fmt.Println("set")
@@ -125,7 +125,7 @@ func commandHandler(slc *[][]byte) (resp [][]byte, err error) {
 	return
 }
 
-// puts input into db
+//Set puts input into database.
 func set(slc *[][]byte) ([][]byte, error) {
 	resp := [][]byte{}
 	len := len(*slc)
@@ -138,7 +138,7 @@ func set(slc *[][]byte) ([][]byte, error) {
 	return resp, nil
 }
 
-// finds and sends input from db
+//Get gathers and outputs requested data from datbase.
 func get(slc *[][]byte) ([][]byte, error) {
 	len := len(*slc)
 	resp := [][]byte{}
@@ -153,15 +153,15 @@ func get(slc *[][]byte) ([][]byte, error) {
 	return resp, nil
 }
 
-//sends information back to client
-func responder(slc [][]byte, conn net.Conn) error {
+//Respond sends information back to client.
+func respond(slc [][]byte, conn net.Conn) error {
 	toSend, err := fmtData(slc)
 	fmt.Println("sent:", string(toSend))
 	conn.Write(toSend)
 	return err
 }
 
-//formats input as resp array of bulk strings
+//FmtData formats input as RESP array of bulk strings.
 func fmtData(slc [][]byte) ([]byte, error) {
 	delim := `\r\n`
 	elCount := fmt.Sprint(len(slc))
