@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -15,4 +16,13 @@ func TestFmtData(T *testing.T) {
 	if !reflect.DeepEqual(r, B) {
 		T.Fatalf("got %v, want %v", string(r), string(B))
 	}
+}
+
+func TestHandleCommand(T *testing.T) {
+	input := [][]byte{[]byte("net")}
+	_, err := handleCommand(&input)
+	if err == nil {
+		T.Fatalf("should throw error")
+	}
+	fmt.Println(err)
 }

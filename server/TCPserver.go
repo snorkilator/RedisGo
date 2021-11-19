@@ -2,7 +2,7 @@ package server
 
 import (
 	"bufio"
-	"fmt"
+	"log"
 	"net"
 	"os"
 )
@@ -13,17 +13,17 @@ const (
 	CONN_TYPE = "tcp"
 )
 
-// receives tcp connections and passes them to handler in seperate thread
+// Run receives tcp connections and passes them to handler in seperate thread
 func Run(a chan ClientMHandle) {
 	// Listen for incoming connections.
 	l, err := net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
 	if err != nil {
-		fmt.Println("Error listening:", err.Error())
+		log.Println("Error listening:", err.Error())
 		os.Exit(1)
 	}
 	// Close the listener when the application closes.
 	defer l.Close()
-	fmt.Println("Listening on " + CONN_HOST + ":" + CONN_PORT)
+	log.Println("Listening on " + CONN_HOST + ":" + CONN_PORT)
 	ID := 0
 
 	for {
@@ -31,11 +31,11 @@ func Run(a chan ClientMHandle) {
 		// Listen for an incoming connection.
 		conn, err := l.Accept()
 		if err != nil {
-			fmt.Println("Error accepting: ", err.Error())
+			log.Println("Error accepting: ", err.Error())
 			os.Exit(1)
 		}
 		// Handle connections in a new goroutine.
-		go handleRequest(conn, ID, a)
+		go handleRequest(conn, ID, a, l)
 		ID++
 	}
 }
@@ -45,14 +45,19 @@ type ClientMHandle = struct {
 	Conn net.Conn
 }
 
-// Handles incoming requests.
-func handleRequest(conn net.Conn, ID int, a chan ClientMHandle) {
+// handle Requests Handles incoming requests and sends incoming data to chan for processing.
+func handleRequest(conn net.Conn, ID int, a chan ClientMHandle, l net.Listener) {
 
 	for {
 		buf := bufio.NewReader(conn)
-		data, _ := buf.ReadBytes(10)
-		ClientMHandle := ClientMHandle{data, conn}
-		a <- ClientMHandle
-		fmt.Println("server.Run():", string(data), "received from:", conn.RemoteAddr(), "connection number:", ID)
+		data, err := buf.ReadBytes(10)
+		if err != nil {
+			l.Close()
+			log.Println("handleRequest:", err)
+			return
+		}
+		clientMHandle := ClientMHandle{data, conn}
+		a <- clientMHandle
+		log.Println("handleRequest:", string(data), "received from:", conn.RemoteAddr(), "connection number:", ID)
 	}
 }
