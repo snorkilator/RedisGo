@@ -22,7 +22,7 @@ func TestHandleCommand(T *testing.T) {
 	input := [][]byte{[]byte("net")}
 	_, err := handleCommand(&input)
 	if err == nil {
-		T.Fatalf("should throw error")
+		T.Fatalf("handleCommand should throw error")
 	}
 	fmt.Println(err)
 }

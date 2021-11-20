@@ -14,7 +14,7 @@ const (
 )
 
 // Run receives tcp connections and passes them to handler in seperate thread
-func Run(a chan ClientMHandle) {
+func Run(msgCh chan ClientMHandle) {
 	// Listen for incoming connections.
 	l, err := net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
 	if err != nil {
@@ -35,7 +35,7 @@ func Run(a chan ClientMHandle) {
 			os.Exit(1)
 		}
 		// Handle connections in a new goroutine.
-		go handleRequest(conn, ID, a, l)
+		go handleRequest(conn, ID, msgCh, l)
 		ID++
 	}
 }
@@ -46,7 +46,7 @@ type ClientMHandle = struct {
 }
 
 // handle Requests Handles incoming requests and sends incoming data to chan for processing.
-func handleRequest(conn net.Conn, ID int, a chan ClientMHandle, l net.Listener) {
+func handleRequest(conn net.Conn, ID int, msgCh chan ClientMHandle, l net.Listener) {
 
 	for {
 		buf := bufio.NewReader(conn)
@@ -57,7 +57,7 @@ func handleRequest(conn net.Conn, ID int, a chan ClientMHandle, l net.Listener) 
 			return
 		}
 		clientMHandle := ClientMHandle{data, conn}
-		a <- clientMHandle
+		msgCh <- clientMHandle
 		log.Println("handleRequest:", string(data), "received from:", conn.RemoteAddr(), "connection number:", ID)
 	}
 }
