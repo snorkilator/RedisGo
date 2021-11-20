@@ -5,5 +5,3 @@ create tests for all functions
 send error message to client using resp error type
 
 add sentence descriptions to server functions
-
-test handleRequest error

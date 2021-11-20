@@ -21,21 +21,21 @@ func Run(msgCh chan ClientMHandle) {
 		log.Println("Error listening:", err.Error())
 		os.Exit(1)
 	}
+
 	// Close the listener when the application closes.
 	defer l.Close()
 	log.Println("Listening on " + CONN_HOST + ":" + CONN_PORT)
 	ID := 0
-
 	for {
 
 		// Listen for an incoming connection.
 		conn, err := l.Accept()
 		if err != nil {
 			log.Println("Error accepting: ", err.Error())
-			os.Exit(1)
+			continue
 		}
 		// Handle connections in a new goroutine.
-		go handleRequest(conn, ID, msgCh, l)
+		go handleRequest(conn, ID, msgCh)
 		ID++
 	}
 }
@@ -45,14 +45,13 @@ type ClientMHandle = struct {
 	Conn net.Conn
 }
 
-// handle Requests Handles incoming requests and sends incoming data to chan for processing.
-func handleRequest(conn net.Conn, ID int, msgCh chan ClientMHandle, l net.Listener) {
+// handleRequests Handles incoming requests and sends incoming data to chan for processing.
+func handleRequest(conn net.Conn, ID int, msgCh chan ClientMHandle) {
 
 	for {
 		buf := bufio.NewReader(conn)
 		data, err := buf.ReadBytes(10)
 		if err != nil {
-			l.Close()
 			log.Println("handleRequest:", err)
 			return
 		}
