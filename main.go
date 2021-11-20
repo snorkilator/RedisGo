@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"redis/server"
 	"strconv"
@@ -21,23 +22,43 @@ func main() {
 
 		s, err := parse(msg.Data)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
+			err = sendErr(err, msg.Conn)
+			if err != nil {
+				log.Println(err)
+			}
 			continue
 		}
 
 		resp, err := handleCommand(&s)
 		if err != nil {
-			// add error sender
-			fmt.Println(err)
+			log.Println(err)
+			err = sendErr(err, msg.Conn)
+			if err != nil {
+				log.Println(err)
+			}
 			continue
 		}
 
 		err = respond(resp, msg.Conn)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
+			err = sendErr(err, msg.Conn)
+			if err != nil {
+				log.Println(err)
+			}
 			continue
 		}
 	}
+}
+
+func sendErr(s error, conn net.Conn) error {
+	toSend := []byte("-" + s + `\r\n`)
+	_, err := conn.Write(toSend) //find out if n can indicate write error (wrong number of bytes printed)
+	if err != nil {
+		return fmt.Errorf("sendErr: %v", err)
+	}
+	return nil
 }
 
 // Parse takes RESP array of bulk strings, and outputs a slice of []bytes containing the elements of the array
@@ -57,7 +78,7 @@ func parse(b []byte) ([][]byte, error) {
 	for i := 0; i < arrayLen && currentIndex < len(s); i, currentIndex = i+1, currentIndex+4 {
 
 		if s[currentIndex] != '$' {
-			return nil, fmt.Errorf("parser: Expected type symbol '$' for element %v in array but got %v at index %v", i+1, string(s[currentIndex]), currentIndex)
+			return nil, fmt.Errorf("parser: Expected string symbol '$' for element %v in array but got %v at index %v", i+1, string(s[currentIndex]), currentIndex)
 		}
 		currentIndex++
 
