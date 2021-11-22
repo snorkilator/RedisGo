@@ -2,8 +2,6 @@
 
 create tests for all functions
 
-sendErr
-    	conn.Write(toSend) //find out if n can indicate write error (wrong number of bytes printed)
 Simplify error handling to be more self contained
 
 make fmtData more efficient
