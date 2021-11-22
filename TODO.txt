@@ -2,9 +2,8 @@
 
 create tests for all functions
 
-send error message to client using resp error type
-    sendErr needs to convert error type to string and then send it using conn.Write()
-
 sendErr
     	conn.Write(toSend) //find out if n can indicate write error (wrong number of bytes printed)
 Simplify error handling to be more self contained
+
+make fmtData more efficient

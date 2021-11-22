@@ -53,10 +53,14 @@ func main() {
 }
 
 func sendErr(s error, conn net.Conn) error {
-	toSend := []byte("-" + s + `\r\n`)
-	_, err := conn.Write(toSend) //find out if n can indicate write error (wrong number of bytes printed)
+
+	toSend := []byte("-" + s.Error() + `\r\n`)
+	n, err := conn.Write(toSend) //find out if n can indicate write error (wrong number of bytes printed)
 	if err != nil {
 		return fmt.Errorf("sendErr: %v", err)
+	}
+	if n != len(toSend) {
+		return fmt.Errorf("sendErr: error message failed to send")
 	}
 	return nil
 }
@@ -67,7 +71,7 @@ func parse(b []byte) ([][]byte, error) {
 	var parsed [][]byte
 
 	if s[0] != byte('*') {
-		return nil, fmt.Errorf("input is not Array of Bulk Strings type: want *, got %v", string(s[0]))
+		return nil, fmt.Errorf("parse: input not Array of Bulk Strings type: want *, got %v", string(s[0]))
 	}
 
 	arrayLen, currentIndex, err := getLen(1, &s)
@@ -78,7 +82,7 @@ func parse(b []byte) ([][]byte, error) {
 	for i := 0; i < arrayLen && currentIndex < len(s); i, currentIndex = i+1, currentIndex+4 {
 
 		if s[currentIndex] != '$' {
-			return nil, fmt.Errorf("parser: Expected string symbol '$' for element %v in array but got %v at index %v", i+1, string(s[currentIndex]), currentIndex)
+			return nil, fmt.Errorf("parse: Expected string symbol '$' for element %v in array but got %v at index %v", i+1, string(s[currentIndex]), currentIndex)
 		}
 		currentIndex++
 
@@ -89,16 +93,16 @@ func parse(b []byte) ([][]byte, error) {
 		}
 
 		if currentIndex+strLen > len(s)-1 {
-			return nil, fmt.Errorf(`parser: %v indexed element does not exist in array`, i+1)
+			return nil, fmt.Errorf(`parse: %v indexed element does not exist in array`, i+1)
 		}
 		tempStr := b[currentIndex : currentIndex+strLen]
 		currentIndex += strLen
 
 		if len(s)-1 < currentIndex+3 {
-			return nil, fmt.Errorf(`parser: array element %v does not terminate with \r\n`, i)
+			return nil, fmt.Errorf(`parse: array element %v does not terminate with "\r\n"`, i)
 		}
 		if s[currentIndex:currentIndex+4] != `\r\n` {
-			return nil, fmt.Errorf(`parser: expected \r\n but found %v starting at index %v`, s[currentIndex:currentIndex+4], currentIndex)
+			return nil, fmt.Errorf(`parse: expected \r\n but found %v starting at index %v`, s[currentIndex:currentIndex+4], currentIndex)
 		}
 		parsed = append(parsed, tempStr)
 
@@ -141,7 +145,7 @@ func handleCommand(slc *[][]byte) (resp [][]byte, err error) {
 		fmt.Println("get")
 		resp, err = get(slc)
 	default:
-		err = fmt.Errorf("no such command %s, try SET or GET", (*slc)[0])
+		err = fmt.Errorf("handleCommand: no such command %s, try SET or GET", (*slc)[0])
 	}
 	return
 }
@@ -164,11 +168,11 @@ func get(slc *[][]byte) ([][]byte, error) {
 	len := len(*slc)
 	resp := [][]byte{}
 	if len != 2 {
-		return nil, fmt.Errorf("set: wrong number of arguments. want 3 but got %v", len)
+		return nil, fmt.Errorf("get: wrong number of arguments. want 3 but got %v", len)
 	}
 	v, ok := db[string((*slc)[1])]
 	if !ok {
-		return nil, fmt.Errorf("%v does not exist in database", (*slc)[1])
+		return nil, fmt.Errorf(`get: "%v" does not exist in database`, (*slc)[1])
 	}
 	resp = append(resp, v)
 	return resp, nil
