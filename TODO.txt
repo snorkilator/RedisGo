@@ -1,10 +1,7 @@
 ! Fix parser, so it doesn't copy input during byte slice to string conversion
 
+create tests for all functions
 
-send responses back to client
-format responses using resp
-    build thing that takes command and arguments and turns that into resp string
+Simplify error handling to be more self contained
 
-
-check if there are bugs
-    Does queue work correctly
+make fmtData more efficient
