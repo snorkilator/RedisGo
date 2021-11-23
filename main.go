@@ -145,7 +145,7 @@ func handleCommand(slc *[][]byte) (resp [][]byte, err error) {
 		fmt.Println("get")
 		resp, err = get(slc)
 	default:
-		err = fmt.Errorf("handleCommand: no such command %s, try SET or GET", (*slc)[0])
+		err = fmt.Errorf("handleCommand: no such command %s, try set or get", (*slc)[0])
 	}
 	return
 }
@@ -163,12 +163,12 @@ func set(slc *[][]byte) ([][]byte, error) {
 	return resp, nil
 }
 
-// Get gathers and outputs requested data from datbase.
+// Get collects and outputs requested data.
 func get(slc *[][]byte) ([][]byte, error) {
 	len := len(*slc)
 	resp := [][]byte{}
 	if len != 2 {
-		return nil, fmt.Errorf("get: wrong number of arguments. want 3 but got %v", len)
+		return nil, fmt.Errorf("get: wrong number of arguments. want 2 but got %v", len)
 	}
 	v, ok := db[string((*slc)[1])]
 	if !ok {
