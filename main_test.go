@@ -17,8 +17,8 @@ func TestFmtData(T *testing.T) {
 	}
 }
 
-func TestHandleCommand(T *testing.T) {
-	//test error for incorrect command
+func TestHandleCommandError(T *testing.T) {
+	// test error for incorrect command
 	input := [][]byte{[]byte("net")}
 	_, err := handleCommand(&input)
 	if err.Error() != fmt.Sprintf("handleCommand: no such command %s, try set or get", input[0]) {
@@ -46,7 +46,6 @@ func TestGetError(T *testing.T) {
 	if err.Error() != fmt.Sprintf(`get: "%v" does not exist in database`, keyNotPresent[1]) {
 		T.Fatalf("get should return error: no key found in database")
 	}
-
 }
 
 func TestGetSetHappy(T *testing.T) {
@@ -75,7 +74,7 @@ func TestGetSetHappy(T *testing.T) {
 }
 
 func TestSetError(T *testing.T) {
-	// error when there are too many
+	// error when there are too many elements
 	tooManySlc := [][]byte{[]byte("set"), []byte("set"), []byte("set"), []byte("set")}
 	_, err := set(&tooManySlc)
 	if err.Error() != "set: wrong number of arguments. want 3 but got 4" {
