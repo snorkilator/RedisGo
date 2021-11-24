@@ -5,3 +5,5 @@ create tests for all functions
 Simplify error handling to be more self contained
 
 make fmtData more efficient
+
+test tcp related features: https://dev.to/williamhgough/how-to-test-tcpudp-connections-in-go---part-1-3bga
