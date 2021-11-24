@@ -10,7 +10,7 @@ func TestFmtData(T *testing.T) {
 	var input [][]byte = [][]byte{[]byte("get"), []byte("a")}
 
 	var want []byte = []byte(`*2\r\n$3\r\nget\r\n$1\r\na\r\n`)
-	got, _ := fmtData(input)
+	got := fmtData(input)
 
 	if !reflect.DeepEqual(got, want) {
 		T.Fatalf("got %v, want %v", string(got), string(want))

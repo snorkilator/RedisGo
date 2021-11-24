@@ -180,14 +180,20 @@ func get(slc *[][]byte) ([][]byte, error) {
 
 // Respond sends information back to client.
 func respond(slc [][]byte, conn net.Conn) error {
-	toSend, err := fmtData(slc)
+	toSend := fmtData(slc)
 	fmt.Println("sent:", string(toSend))
-	conn.Write(toSend)
+	n, err := conn.Write(toSend)
+	if err != nil {
+		return fmt.Errorf("sendErr: %v", err)
+	}
+	if n != len(toSend) {
+		return fmt.Errorf("sendErr: error message failed to send")
+	}
 	return err
 }
 
 // FmtData formats input as RESP array of bulk strings.
-func fmtData(slc [][]byte) ([]byte, error) {
+func fmtData(slc [][]byte) []byte {
 	delim := `\r\n`
 	elCount := fmt.Sprint(len(slc))
 	output := []byte(`*` + elCount + delim)
@@ -199,5 +205,5 @@ func fmtData(slc [][]byte) ([]byte, error) {
 		output = append(output, e...)
 		output = append(output, []byte(delim)...)
 	}
-	return output, nil
+	return output
 }
