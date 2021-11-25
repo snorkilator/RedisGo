@@ -65,7 +65,7 @@ func sendErr(s error, conn net.Conn) error {
 	return nil
 }
 
-// Parse takes RESP array of bulk strings, and outputs a slice of []bytes containing the elements of the array
+// parse takes RESP array of bulk strings, and outputs a slice of []bytes containing the elements of the array
 func parse(b []byte) ([][]byte, error) {
 	s := string(b) // get rid of this unnecessary copy operation, don't want to have to copy large data if it is unnecessary to do so
 	var parsed [][]byte
@@ -110,7 +110,7 @@ func parse(b []byte) ([][]byte, error) {
 	return parsed, nil
 }
 
-// GetLen is a utility for parse(). It finds the indicator of length for arrays and bulk strings within arrays. Returns length as int as well as the updated index.
+// getLen is a utility for parse(). It finds the indicator of length for arrays and bulk strings within arrays. Returns length as int as well as the updated index.
 func getLen(i int, s *string) (int, int, error) {
 	beginStr := i
 	var endofNum int
@@ -135,7 +135,7 @@ func getLen(i int, s *string) (int, int, error) {
 	return len, i + 3, nil
 }
 
-// HandleCommand executes command with listed arguments and passes response from command back to caller.
+// handleCommand executes command with listed arguments and passes response from command back to caller.
 func handleCommand(slc *[][]byte) (resp [][]byte, err error) {
 	switch string((*slc)[0]) {
 	case "set":
@@ -150,7 +150,7 @@ func handleCommand(slc *[][]byte) (resp [][]byte, err error) {
 	return
 }
 
-// Set puts input into database.
+// set puts input into database.
 func set(slc *[][]byte) ([][]byte, error) {
 	resp := [][]byte{}
 	len := len(*slc)
@@ -163,7 +163,7 @@ func set(slc *[][]byte) ([][]byte, error) {
 	return resp, nil
 }
 
-// Get collects and outputs requested data.
+// get collects and outputs requested data.
 func get(slc *[][]byte) ([][]byte, error) {
 	len := len(*slc)
 	resp := [][]byte{}
@@ -178,7 +178,7 @@ func get(slc *[][]byte) ([][]byte, error) {
 	return resp, nil
 }
 
-// Respond sends information back to client.
+// respond sends information back to client.
 func respond(slc [][]byte, conn net.Conn) error {
 	toSend := fmtData(slc)
 	fmt.Println("sent:", string(toSend))
@@ -192,7 +192,7 @@ func respond(slc [][]byte, conn net.Conn) error {
 	return err
 }
 
-// FmtData formats input as RESP array of bulk strings.
+// fmtData formats input as RESP array of bulk strings.
 func fmtData(slc [][]byte) []byte {
 	delim := `\r\n`
 	elCount := fmt.Sprint(len(slc))
