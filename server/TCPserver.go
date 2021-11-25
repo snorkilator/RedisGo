@@ -57,6 +57,6 @@ func handleRequest(conn net.Conn, ID int, msgCh chan ClientMHandle) {
 		}
 		clientMHandle := ClientMHandle{data, conn}
 		msgCh <- clientMHandle
-		log.Println("handleRequest:", string(data), "received from:", conn.RemoteAddr(), "connection number:", ID)
+		log.Printf("handleRequest: %v received from: %v connection number: %v", string(data), conn.RemoteAddr(), ID)
 	}
 }
