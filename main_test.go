@@ -132,7 +132,9 @@ func TestServerAccept(t *testing.T) {
 		for {
 			buf := bufio.NewReader(conn)
 			data, _ := buf.ReadBytes(10)
-			c <- data
+			if len(data) != 0 {
+				fmt.Println(data)
+			}
 		}
 	}(conn, c)
 	_, err = conn.Write([]byte(`*3\r\n$3\r\nset\r\n$1\r\na\r\n$1\r\nb\r\n`))
