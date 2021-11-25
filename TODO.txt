@@ -4,11 +4,10 @@ create tests for all functions
     test tcp related features: https://dev.to/williamhgough/how-to-test-tcpudp-connections-in-go---part-1-3bga
     commandHandle happy
     parse error
-    sendErrHappy
-    respondHappy
+    sendErr Happy
+    respond Happy
 
 
 Simplify error handling to be more self contained
 
 make fmtData more efficient
-
