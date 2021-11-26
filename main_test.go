@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"net"
 	"reflect"
@@ -133,16 +132,6 @@ func TestServerAccept(t *testing.T) {
 	}
 	defer conn.Close()
 
-	c := make(chan []byte)
-	go func(conn net.Conn, msg chan []byte) {
-		for {
-			buf := bufio.NewReader(conn)
-			data, _ := buf.ReadBytes(10)
-			if len(data) != 0 {
-				fmt.Println(data)
-			}
-		}
-	}(conn, c)
 	_, err = conn.Write([]byte(`*3\r\n$3\r\nset\r\n$1\r\na\r\n$1\r\nb\r\n`))
 	if err != nil {
 		t.Fatalf("error sending data")
