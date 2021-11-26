@@ -119,6 +119,12 @@ func TestParseHappy(t *testing.T) {
 	}
 }
 
+// start server and init database
+// request connection and test for success
+// listen for message from server in seperate thread
+// send set command
+// if listener doesn't receive response, error
+// send get command, if not expected message, error
 func TestServerAccept(t *testing.T) {
 	go main()
 	conn, err := net.Dial("tcp", "localhost:3333")
