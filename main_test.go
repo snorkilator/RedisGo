@@ -120,7 +120,7 @@ func TestParseHappy(t *testing.T) {
 }
 
 // send get command, if not expected message, error
-func TestServerAccept(t *testing.T) {
+func TestServer(t *testing.T) {
 	go main()
 	conn, err := net.Dial("tcp", "localhost:3333")
 	if err != nil {
@@ -128,6 +128,7 @@ func TestServerAccept(t *testing.T) {
 	}
 	defer conn.Close()
 
+	// test set
 	_, err = conn.Write([]byte(`*3\r\n$3\r\nset\r\n$1\r\na\r\n$1\r\nb\r\n` + "\n"))
 	if err != nil {
 		t.Fatalf("error sending data")
@@ -137,9 +138,26 @@ func TestServerAccept(t *testing.T) {
 	want := []byte(`*1\r\n$2\r\nOK\r\n`)
 	conn.Read(received)
 	if err != nil {
-		t.Fatalf("error reading response")
+		t.Fatalf("error reading set response")
 	}
 	if !bytes.Equal(received, want) {
 		t.Fatalf("got %v want %v", received, want)
 	}
+
+	// test get
+	_, err = conn.Write([]byte(`*2\r\n$3\r\nget\r\n$1\r\na\r\n` + "\n"))
+	if err != nil {
+		t.Fatalf("error sending data")
+	}
+
+	getReceived := make([]byte, 17)
+	getWant := []byte(`*1\r\n$1\r\nb\r\n`)
+	conn.Read(getReceived)
+	if err != nil {
+		t.Fatalf("error reading get response")
+	}
+	if !bytes.Equal(getReceived, getWant) {
+		t.Fatalf("got %v want %v", getReceived, getWant)
+	}
+
 }
