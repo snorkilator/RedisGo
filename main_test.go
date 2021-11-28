@@ -160,3 +160,7 @@ func TestServer(t *testing.T) {
 	}
 
 }
+
+func TestErr(t *testing.T) {
+	t.Fatalf("we are on dev")
+}
