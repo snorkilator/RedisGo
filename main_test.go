@@ -119,7 +119,6 @@ func TestParseHappy(t *testing.T) {
 	}
 }
 
-// send get command, if not expected message, error
 func TestServer(t *testing.T) {
 	go main()
 	conn, err := net.Dial("tcp", "localhost:3333")
