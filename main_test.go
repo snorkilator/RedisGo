@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"net"
 	"reflect"
@@ -118,22 +119,27 @@ func TestParseHappy(t *testing.T) {
 	}
 }
 
-// start server and init database
-// request connection and test for success
-// listen for message from server in seperate thread
-// send set command
-// if listener doesn't receive response, error
 // send get command, if not expected message, error
 func TestServerAccept(t *testing.T) {
 	go main()
 	conn, err := net.Dial("tcp", "localhost:3333")
 	if err != nil {
-		t.Fatalf("error dialing")
+		t.Fatalf("error dialing server")
 	}
 	defer conn.Close()
 
-	_, err = conn.Write([]byte(`*3\r\n$3\r\nset\r\n$1\r\na\r\n$1\r\nb\r\n`))
+	_, err = conn.Write([]byte(`*3\r\n$3\r\nset\r\n$1\r\na\r\n$1\r\nb\r\n` + "\n"))
 	if err != nil {
 		t.Fatalf("error sending data")
+	}
+
+	received := make([]byte, 18)
+	want := []byte(`*1\r\n$2\r\nOK\r\n`)
+	conn.Read(received)
+	if err != nil {
+		t.Fatalf("error reading response")
+	}
+	if !bytes.Equal(received, want) {
+		t.Fatalf("got %v want %v", received, want)
 	}
 }

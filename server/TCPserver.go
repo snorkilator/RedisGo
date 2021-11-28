@@ -53,6 +53,7 @@ func handleRequest(conn net.Conn, ID int, msgCh chan ClientMHandle) {
 		data, err := buf.ReadBytes(10)
 		if err != nil {
 			log.Println("handleRequest:", err)
+			conn.Close()
 			return
 		}
 		clientMHandle := ClientMHandle{data, conn}
