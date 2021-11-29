@@ -109,13 +109,13 @@ func TestParseHappy(t *testing.T) {
 		},
 	}
 
-	for _, e := range tc {
-		got, err := parse(e.input)
+	for _, c := range tc {
+		got, err := parse(c.input)
 		if err != nil {
 			t.Fatalf("unexpected error")
 		}
-		if !reflect.DeepEqual(got, e.expect) {
-			t.Fatalf("got %v want %v", got, e.expect)
+		if !reflect.DeepEqual(got, c.expect) {
+			t.Fatalf("got %v want %v", got, c.expect)
 		}
 
 	}
@@ -139,16 +139,16 @@ func TestServer(t *testing.T) {
 		t.Fatalf("error sending data: %v", err)
 	}
 
-	received := make([]byte, 18)
+	got := make([]byte, 18)
 	want := []byte(`*1\r\n$2\r\nOK\r\n`)
 
-	_, err = conn.Read(received)
+	_, err = conn.Read(got)
 	if err != nil {
 		t.Fatalf("error reading set response")
 	}
 
-	if !bytes.Equal(received, want) {
-		t.Fatalf("got %v want %v", received, want)
+	if !bytes.Equal(got, want) {
+		t.Fatalf("got %v want %v", got, want)
 	}
 
 	// test get
@@ -157,15 +157,15 @@ func TestServer(t *testing.T) {
 		t.Fatalf("error sending data: %v", err)
 	}
 
-	getReceived := make([]byte, 17)
-	getWant := []byte(`*1\r\n$1\r\nb\r\n`)
+	got = make([]byte, 17)
+	want = []byte(`*1\r\n$1\r\nb\r\n`)
 
-	_, err = conn.Read(getReceived)
+	_, err = conn.Read(got)
 	if err != nil {
 		t.Fatalf("error reading get response: %v", err)
 	}
 
-	if !bytes.Equal(getReceived, getWant) {
-		t.Fatalf("got %v want %v", getReceived, getWant)
+	if !bytes.Equal(got, want) {
+		t.Fatalf("got %v want %v", got, want)
 	}
 }
