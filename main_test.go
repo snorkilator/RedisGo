@@ -133,7 +133,7 @@ func TestServer(t *testing.T) {
 	defer conn.Close()
 	defer server.CloseListen()
 
-	// test set
+	// test set command
 	_, err = conn.Write([]byte(`*3\r\n$3\r\nset\r\n$1\r\na\r\n$1\r\nb\r\n` + "\n"))
 	if err != nil {
 		t.Fatalf("error sending data: %v", err)
@@ -151,7 +151,7 @@ func TestServer(t *testing.T) {
 		t.Fatalf("got %v want %v", got, want)
 	}
 
-	// test get
+	// test get command
 	_, err = conn.Write([]byte(`*2\r\n$3\r\nget\r\n$1\r\na\r\n` + "\n"))
 	if err != nil {
 		t.Fatalf("error sending data: %v", err)
