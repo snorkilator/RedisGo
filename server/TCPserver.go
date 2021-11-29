@@ -13,10 +13,14 @@ const (
 	CONN_TYPE = "tcp"
 )
 
+var l net.Listener
+
 // Run receives tcp connections and passes them to handler in seperate thread
 func Run(msgCh chan ClientMHandle) {
 	// Listen for incoming connections.
-	l, err := net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
+
+	var err error
+	l, err = net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
 	if err != nil {
 		log.Println("Error listening:", err.Error())
 		os.Exit(1)
@@ -38,6 +42,11 @@ func Run(msgCh chan ClientMHandle) {
 		go handleRequest(conn, ID, msgCh)
 		ID++
 	}
+}
+
+// CloseListen closes listener (used in tests)
+func CloseListen() {
+	l.Close()
 }
 
 type ClientMHandle = struct {

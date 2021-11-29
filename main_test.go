@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"net"
+	"redis/server"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestFmtData(t *testing.T) {
@@ -120,25 +122,31 @@ func TestParseHappy(t *testing.T) {
 }
 
 func TestServer(t *testing.T) {
+
+	// init server and connect to it
 	go main()
+	time.Sleep(1 * time.Second)
 	conn, err := net.Dial("tcp", "localhost:3333")
 	if err != nil {
-		t.Fatalf("error dialing server")
+		t.Fatalf("%v", err)
 	}
 	defer conn.Close()
+	defer server.CloseListen()
 
 	// test set
 	_, err = conn.Write([]byte(`*3\r\n$3\r\nset\r\n$1\r\na\r\n$1\r\nb\r\n` + "\n"))
 	if err != nil {
-		t.Fatalf("error sending data")
+		t.Fatalf("error sending data: %v", err)
 	}
 
 	received := make([]byte, 18)
 	want := []byte(`*1\r\n$2\r\nOK\r\n`)
-	conn.Read(received)
+
+	_, err = conn.Read(received)
 	if err != nil {
 		t.Fatalf("error reading set response")
 	}
+
 	if !bytes.Equal(received, want) {
 		t.Fatalf("got %v want %v", received, want)
 	}
@@ -146,21 +154,18 @@ func TestServer(t *testing.T) {
 	// test get
 	_, err = conn.Write([]byte(`*2\r\n$3\r\nget\r\n$1\r\na\r\n` + "\n"))
 	if err != nil {
-		t.Fatalf("error sending data")
+		t.Fatalf("error sending data: %v", err)
 	}
 
 	getReceived := make([]byte, 17)
 	getWant := []byte(`*1\r\n$1\r\nb\r\n`)
-	conn.Read(getReceived)
+
+	_, err = conn.Read(getReceived)
 	if err != nil {
-		t.Fatalf("error reading get response")
+		t.Fatalf("error reading get response: %v", err)
 	}
+
 	if !bytes.Equal(getReceived, getWant) {
 		t.Fatalf("got %v want %v", getReceived, getWant)
 	}
-
-}
-
-func TestErr(t *testing.T) {
-	t.Fatalf("we are on dev")
 }
