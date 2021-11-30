@@ -133,39 +133,58 @@ func TestServer(t *testing.T) {
 	defer conn.Close()
 	defer server.CloseListen()
 
-	// test set command
-	_, err = conn.Write([]byte(`*3\r\n$3\r\nset\r\n$1\r\na\r\n$1\r\nb\r\n` + "\n"))
-	if err != nil {
-		t.Fatalf("error sending data: %v", err)
-	}
+	t.Run("TestSendErr", func(t *testing.T) {
+		_, err := conn.Write([]byte(`*2\r\n$3\r\ngt\r\n$1\r\na\r\n` + "\n"))
+		if err != nil {
+			t.Fatalf("error sending command: %v", err)
+		}
 
-	got := make([]byte, 18)
-	want := []byte(`*1\r\n$2\r\nOK\r\n`)
+		data := make([]byte, 512)
+		_, err = conn.Read(data)
+		if err != nil {
+			t.Fatalf("error reading response: %v", err)
+		}
+		fmt.Printf("%s", data)
+		if data[0] != '-' {
+			t.Fatalf("did not receive error message")
+		}
 
-	_, err = conn.Read(got)
-	if err != nil {
-		t.Fatalf("error reading set response")
-	}
+	})
+	t.Run("TestSetCommand", func(t *testing.T) {
+		_, err = conn.Write([]byte(`*3\r\n$3\r\nset\r\n$1\r\na\r\n$1\r\nb\r\n` + "\n")) //changed
+		if err != nil {
+			t.Fatalf("error sending data: %v", err)
+		}
 
-	if !bytes.Equal(got, want) {
-		t.Fatalf("got %v want %v", got, want)
-	}
+		got := make([]byte, 18)
+		want := []byte(`*1\r\n$2\r\nOK\r\n`)
 
-	// test get command
-	_, err = conn.Write([]byte(`*2\r\n$3\r\nget\r\n$1\r\na\r\n` + "\n"))
-	if err != nil {
-		t.Fatalf("error sending data: %v", err)
-	}
+		_, err = conn.Read(got)
+		if err != nil {
+			t.Fatalf("error reading set response")
+		}
 
-	got = make([]byte, 17)
-	want = []byte(`*1\r\n$1\r\nb\r\n`)
+		if !bytes.Equal(got, want) {
+			t.Fatalf("got %v want %v", got, want)
+		}
+	})
+	t.Run("TestGetCommand", func(t *testing.T) {
+		_, err = conn.Write([]byte(`*2\r\n$3\r\nget\r\n$1\r\na\r\n` + "\n"))
+		if err != nil {
+			t.Fatalf("error sending data: %v", err)
+		}
 
-	_, err = conn.Read(got)
-	if err != nil {
-		t.Fatalf("error reading get response: %v", err)
-	}
+		got := make([]byte, 17)
+		want := []byte(`*1\r\n$1\r\nb\r\n`)
 
-	if !bytes.Equal(got, want) {
-		t.Fatalf("got %v want %v", got, want)
-	}
+		_, err = conn.Read(got)
+		if err != nil {
+			t.Fatalf("error reading get response: %v", err)
+		}
+
+		if !bytes.Equal(got, want) {
+			t.Fatalf("got %v want %v", got, want)
+		}
+	})
+
 }
