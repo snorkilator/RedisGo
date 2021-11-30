@@ -134,7 +134,7 @@ func TestServer(t *testing.T) {
 	defer server.CloseListen()
 
 	t.Run("TestSendErr", func(t *testing.T) {
-		_, err := conn.Write([]byte(`*2\r\n$3\r\ngt\r\n$1\r\na\r\n` + "\n"))
+		_, err := conn.Write([]byte("*2\r\n$3\r\ngt\r\n$1\r\na\r\n\n"))
 		if err != nil {
 			t.Fatalf("error sending command: %v", err)
 		}
