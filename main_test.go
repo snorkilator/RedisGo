@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net"
+	"os/exec"
 	"redis/server"
 	"reflect"
 	"testing"
@@ -13,11 +14,11 @@ import (
 func TestFmtData(t *testing.T) {
 	input := [][]byte{[]byte("get"), []byte("a")}
 
-	want := []byte(`*2\r\n$3\r\nget\r\n$1\r\na\r\n`)
+	want := []byte("*2\r\n$3\r\nget\r\n$1\r\na\r\n")
 	got := fmtData(input)
 
 	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("got %v, want %v", string(got), string(want))
+		t.Fatalf("got %v,\nwant %v \n", got, want)
 	}
 }
 
@@ -26,7 +27,7 @@ func TestHandleCommandError(t *testing.T) {
 	input := [][]byte{[]byte("net")}
 	_, err := handleCommand(&input)
 	if err.Error() != fmt.Sprintf("handleCommand: no such command %s, try set or get", input[0]) {
-		t.Fatalf("handleCommand should throw error")
+		t.Fatalf("handleCommand should throw error %v", err)
 	}
 }
 
@@ -94,17 +95,31 @@ func TestSetError(t *testing.T) {
 
 }
 
+func TestGetLen(t *testing.T) {
+	input := []byte("12\r\n132\r\n")
+	want := 132
+	lenB, begin, err := getLen(4, &input)
+	if lenB != want {
+		t.Fatalf("got %d, want %d", lenB, want)
+	}
+	if begin != len(input) {
+		t.Fatalf("got %d, want %d", begin, len(input))
+	}
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
 func TestParseHappy(t *testing.T) {
 	tc := []struct {
 		input  []byte
 		expect [][]byte
 	}{
 		{
-			input:  []byte(`*3\r\n$3\r\nset\r\n$1\r\na\r\n$1\r\nb\r\n`),
+			input:  []byte("*3\r\n$3\r\nset\r\n$1\r\na\r\n$1\r\nb\r\n"),
 			expect: [][]byte{[]byte("set"), []byte("a"), []byte("b")},
 		},
 		{
-			input:  []byte(`*2\r\n$3\r\nget\r\n$1\r\na\r\n`),
+			input:  []byte("*2\r\n$3\r\nget\r\n$1\r\na\r\n"),
 			expect: [][]byte{[]byte("get"), []byte("a")},
 		},
 	}
@@ -112,7 +127,7 @@ func TestParseHappy(t *testing.T) {
 	for _, c := range tc {
 		got, err := parse(c.input)
 		if err != nil {
-			t.Fatalf("unexpected error")
+			t.Fatalf("unexpected error %v", err)
 		}
 		if !reflect.DeepEqual(got, c.expect) {
 			t.Fatalf("got %v want %v", got, c.expect)
@@ -131,10 +146,10 @@ func TestServer(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	defer conn.Close()
-	defer server.CloseListen()
+	defer server.Server.Close()
 
 	t.Run("TestSendErr", func(t *testing.T) {
-		_, err := conn.Write([]byte("*2\r\n$3\r\ngt\r\n$1\r\na\r\n\n"))
+		_, err := conn.Write([]byte("*2\r\n$3\r\ngt\r\n$1\r\na\r\n"))
 		if err != nil {
 			t.Fatalf("error sending command: %v", err)
 		}
@@ -151,15 +166,15 @@ func TestServer(t *testing.T) {
 
 	})
 	t.Run("TestSetCommand", func(t *testing.T) {
-		_, err = conn.Write([]byte(`*3\r\n$3\r\nset\r\n$1\r\na\r\n$1\r\nb\r\n` + "\n")) //changed
+		_, err = conn.Write([]byte("*3\r\n$3\r\nset\r\n$1\r\na\r\n$1\r\nb\r\n"))
 		if err != nil {
 			t.Fatalf("error sending data: %v", err)
 		}
 
-		got := make([]byte, 18)
-		want := []byte(`*1\r\n$2\r\nOK\r\n`)
+		want := []byte("*1\r\n$2\r\nOK\r\n")
+		got := make([]byte, len(want)) //don't use length of want
 
-		_, err = conn.Read(got)
+		_, err = conn.Read(got) //add a trimmer to got to trim zeros
 		if err != nil {
 			t.Fatalf("error reading set response")
 		}
@@ -168,14 +183,14 @@ func TestServer(t *testing.T) {
 			t.Fatalf("got %v want %v", got, want)
 		}
 	})
-	t.Run("TestGetCommand", func(t *testing.T) {
-		_, err = conn.Write([]byte(`*2\r\n$3\r\nget\r\n$1\r\na\r\n` + "\n"))
+	t.Run("TestGetCommand (Get must work first)", func(t *testing.T) {
+		_, err = conn.Write([]byte("*2\r\n$3\r\nget\r\n$1\r\na\r\n"))
 		if err != nil {
 			t.Fatalf("error sending data: %v", err)
 		}
 
-		got := make([]byte, 17)
-		want := []byte(`*1\r\n$1\r\nb\r\n`)
+		want := []byte("*1\r\n$1\r\nb\r\n")
+		got := make([]byte, len(want))
 
 		_, err = conn.Read(got)
 		if err != nil {
@@ -186,5 +201,49 @@ func TestServer(t *testing.T) {
 			t.Fatalf("got %v want %v", got, want)
 		}
 	})
+	t.Run("rdcli", func(t *testing.T) {
+		cmd := exec.Command("rdcli", "-h", server.CONN_HOST, "-p", server.CONN_PORT)
 
+		stdin, err := cmd.StdinPipe()
+		if err != nil {
+			t.Fatalf("%v", err)
+		}
+		stdout, err := cmd.StdoutPipe()
+		if err != nil {
+			t.Fatalf("%v", err)
+		}
+
+		err = cmd.Start()
+		if err != nil {
+			t.Fatalf("Write:%v", err)
+		}
+
+		f := false
+		go func() {
+			for {
+				buf := make([]byte, 9)
+				stdout.Read(buf)
+				if string(buf) == "1) qwerty" {
+					f = true
+					break
+				}
+			}
+		}()
+
+		_, err = stdin.Write([]byte("set g qwerty\n"))
+		if err != nil {
+			t.Fatalf("Write:%v", err)
+		}
+
+		stdin.Write([]byte("get g\n"))
+		if err != nil {
+			t.Fatalf("Write:%v", err)
+		}
+
+		time.Sleep(time.Second)
+
+		if !f {
+			t.Fatalf("was not able to right and read using rdcli")
+		}
+	})
 }
