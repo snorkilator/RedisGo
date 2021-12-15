@@ -201,49 +201,43 @@ func TestServer(t *testing.T) {
 			t.Fatalf("got %v want %v", got, want)
 		}
 	})
-	t.Run("rdcli", func(t *testing.T) {
-		cmd := exec.Command("rdcli", "-h", server.CONN_HOST, "-p", server.CONN_PORT)
-
+	t.Run("redis-cli", func(t *testing.T) {
+		cmd := exec.Command("redis-cli", "-h", server.CONN_HOST, "-p", server.CONN_PORT)
 		stdin, err := cmd.StdinPipe()
 		if err != nil {
-			t.Fatalf("%v", err)
+			t.Fatal(err)
 		}
 		stdout, err := cmd.StdoutPipe()
 		if err != nil {
-			t.Fatalf("%v", err)
+			t.Fatal(err)
 		}
 
 		err = cmd.Start()
 		if err != nil {
-			t.Fatalf("Write:%v", err)
+			t.Fatal(err)
 		}
-
-		f := false
-		go func() {
-			for {
-				buf := make([]byte, 9)
-				stdout.Read(buf)
-				if string(buf) == "1) qwerty" {
-					f = true
-					break
-				}
-			}
-		}()
-
 		_, err = stdin.Write([]byte("set g qwerty\n"))
 		if err != nil {
-			t.Fatalf("Write:%v", err)
+			t.Fatal(err)
 		}
-
-		stdin.Write([]byte("get g\n"))
+		buf := make([]byte, 7)
+		_, err = stdout.Read(buf)
 		if err != nil {
-			t.Fatalf("Write:%v", err)
+			t.Fatal(err)
 		}
-
-		time.Sleep(time.Second)
-
-		if !f {
-			t.Fatalf("was not able to right and read using rdcli")
+		if !bytes.Equal(buf[:3], []byte{79, 75, 10}) {
+			t.Fatalf("was not able to perform set command using redis-cli")
+		}
+		_, err = stdin.Write([]byte("get g\n"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = stdout.Read(buf)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(buf, []byte{113, 119, 101, 114, 116, 121, 10}) {
+			t.Fatalf("was not able to perform get command using redis-cli")
 		}
 	})
 }
