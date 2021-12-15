@@ -57,12 +57,9 @@ func sendErr(s error, conn net.Conn) error {
 
 	toSend := []byte("-" + s.Error())
 	toSend = append(toSend, []byte("\r\n")...)
-	n, err := conn.Write(toSend) //find out if n can indicate write error (wrong number of bytes printed)
+	_, err := conn.Write(toSend) //find out if n can indicate write error (wrong number of bytes printed)
 	if err != nil {
 		return fmt.Errorf("sendErr: %v", err)
-	}
-	if n != len(toSend) {
-		return fmt.Errorf("sendErr: error message failed to send")
 	}
 	return nil
 }
