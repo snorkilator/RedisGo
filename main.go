@@ -99,7 +99,7 @@ func parse(b []byte) ([][]byte, error) {
 			return nil, fmt.Errorf(`parse: array element %v does not terminate with "\r\n"`, i)
 		}
 		if !bytes.Equal(b[currentIndex:currentIndex+2], []byte("\r\n")) {
-			return nil, fmt.Errorf(`parse: expected \r\n but found %v starting at index %v`, b[currentIndex:currentIndex+4], currentIndex)
+			return nil, fmt.Errorf(`parse: expected \r\n but found %s starting at index %v`, b[currentIndex:currentIndex+2], currentIndex)
 		}
 		parsed = append(parsed, tempStr)
 
