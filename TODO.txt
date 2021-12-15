@@ -7,7 +7,18 @@ create tests for all functions
     sendErr Happy
     respond Happy
 
+close listener
 
 Simplify error handling to be more self contained
 
 make fmtData more efficient
+
+rewrite fmtData and get rid of appends
+
+TURN //log.Println("Error accepting: ", err.Error()) back on in server package
+
+change the way got works in so that it isn't trimmed by length of want: TestSetCommand and TestGetCommand
+
+find way to close server through command line
+
+look at stdinPipe example godoc

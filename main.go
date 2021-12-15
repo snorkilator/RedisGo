@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"net"
@@ -54,55 +55,51 @@ func main() {
 
 func sendErr(s error, conn net.Conn) error {
 
-	toSend := []byte("-" + s.Error() + `\r\n`)
-	n, err := conn.Write(toSend) //find out if n can indicate write error (wrong number of bytes printed)
+	toSend := []byte("-" + s.Error())
+	toSend = append(toSend, []byte("\r\n")...)
+	_, err := conn.Write(toSend) //find out if n can indicate write error (wrong number of bytes printed)
 	if err != nil {
 		return fmt.Errorf("sendErr: %v", err)
-	}
-	if n != len(toSend) {
-		return fmt.Errorf("sendErr: error message failed to send")
 	}
 	return nil
 }
 
 // parse takes RESP array of bulk strings, and outputs a slice of []bytes containing the elements of the array
 func parse(b []byte) ([][]byte, error) {
-	s := string(b) // get rid of this unnecessary copy operation, don't want to have to copy large data if it is unnecessary to do so
 	var parsed [][]byte
-
-	if s[0] != byte('*') {
-		return nil, fmt.Errorf("parse: input not Array of Bulk Strings type: want *, got %v", string(s[0]))
+	if b[0] != '*' {
+		return nil, fmt.Errorf("parse: input not Array of Bulk Strings type: want *, got %v", string(b[0]))
 	}
 
-	arrayLen, currentIndex, err := getLen(1, &s)
+	arrayLen, currentIndex, err := getLen(1, &b)
 	if err != nil {
 		return nil, err
 	}
 
-	for i := 0; i < arrayLen && currentIndex < len(s); i, currentIndex = i+1, currentIndex+4 {
+	for i := 0; i < arrayLen && currentIndex < len(b); i, currentIndex = i+1, currentIndex+2 {
 
-		if s[currentIndex] != '$' {
-			return nil, fmt.Errorf("parse: Expected string symbol '$' for element %v in array but got %v at index %v", i+1, string(s[currentIndex]), currentIndex)
+		if b[currentIndex] != '$' {
+			return nil, fmt.Errorf("parse: Expected string symbol '$' for element %v in array but got %v at index %v", i+1, string(b[currentIndex]), currentIndex)
 		}
 		currentIndex++
 
 		var strLen int
-		strLen, currentIndex, err = getLen(currentIndex, &s)
+		strLen, currentIndex, err = getLen(currentIndex, &b)
 		if err != nil {
 			return nil, err
 		}
 
-		if currentIndex+strLen > len(s)-1 {
+		if currentIndex+strLen > len(b)-1 {
 			return nil, fmt.Errorf(`parse: %v indexed element does not exist in array`, i+1)
 		}
 		tempStr := b[currentIndex : currentIndex+strLen]
 		currentIndex += strLen
 
-		if len(s)-1 < currentIndex+3 {
+		if len(b)-1 < currentIndex+1 {
 			return nil, fmt.Errorf(`parse: array element %v does not terminate with "\r\n"`, i)
 		}
-		if s[currentIndex:currentIndex+4] != `\r\n` {
-			return nil, fmt.Errorf(`parse: expected \r\n but found %v starting at index %v`, s[currentIndex:currentIndex+4], currentIndex)
+		if !bytes.Equal(b[currentIndex:currentIndex+2], []byte("\r\n")) {
+			return nil, fmt.Errorf(`parse: expected \r\n but found %s starting at index %v`, b[currentIndex:currentIndex+2], currentIndex)
 		}
 		parsed = append(parsed, tempStr)
 
@@ -111,28 +108,28 @@ func parse(b []byte) ([][]byte, error) {
 }
 
 // getLen is a utility for parse(). It finds the indicator of length for arrays and bulk strings within arrays. Returns length as int as well as the updated index.
-func getLen(i int, s *string) (int, int, error) {
+func getLen(i int, b *[]byte) (int, int, error) {
 	beginStr := i
 	var endofNum int
 
 	found := false
 	for ; !found; i++ {
-		if len(*s)-1 < i+3 {
+		if len(*b) < i+2 {
 			return 0, 0, fmt.Errorf(`getLen: Last element in array does not terminate with \r\n`)
 		}
-		if (*s)[i:i+4] == `\r\n` {
+		if bytes.Equal((*b)[i:i+2], []byte("\r\n")) {
 			found = true
 			endofNum = i - 1
 		}
 	}
-	lenS := (*s)[beginStr : endofNum+1]
+	lenB := (*b)[beginStr : endofNum+1]
 
-	len, err := strconv.Atoi(lenS)
+	len, err := strconv.Atoi(string(lenB))
 	if err != nil {
-		return 0, 0, fmt.Errorf("getLen: Array length is not valid number: want number but got %v", lenS)
+		return 0, 0, fmt.Errorf("getLen: Array length is not valid number: want number but got %v", lenB)
 	}
 
-	return len, i + 3, nil
+	return len, i + 1, nil
 }
 
 // handleCommand executes command with listed arguments and passes response from command back to caller.
@@ -144,6 +141,8 @@ func handleCommand(slc *[][]byte) (resp [][]byte, err error) {
 	case "get":
 		fmt.Println("get")
 		resp, err = get(slc)
+	case "info":
+		resp = [][]byte{[]byte("OK")}
 	default:
 		err = fmt.Errorf("handleCommand: no such command %s, try set or get", (*slc)[0])
 	}
@@ -194,16 +193,21 @@ func respond(slc [][]byte, conn net.Conn) error {
 
 // fmtData formats input as RESP array of bulk strings.
 func fmtData(slc [][]byte) []byte {
-	delim := `\r\n`
+	delim := []byte("\r\n")
 	elCount := fmt.Sprint(len(slc))
-	output := []byte(`*` + elCount + delim)
+	var output []byte
+	output = append(output, '*')
+	output = append(output, []byte(elCount)...)
+	output = append(output, delim...)
 
 	for _, e := range slc {
 		slcLen := fmt.Sprint(len(e))
-		elBegin := "$" + slcLen + delim
+		var elBegin = []byte("$")
+		elBegin = append(elBegin, slcLen...)
+		elBegin = append(elBegin, delim...)
 		output = append(output, []byte(elBegin)...)
 		output = append(output, e...)
-		output = append(output, []byte(delim)...)
+		output = append(output, delim...)
 	}
 	return output
 }
