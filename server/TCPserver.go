@@ -4,6 +4,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"sync"
 )
 
 const (
@@ -13,21 +14,30 @@ const (
 )
 
 type server struct {
+	m sync.Mutex
 	l net.Listener
 }
 
-var Server = server{*new(net.Listener)}
+var Server = server{*new(sync.Mutex), *new(net.Listener)}
 
-func (Server server) Close() {
+func (server *server) Close() {
+	server.m.Lock()
 	Server.l.Close()
+	server.m.Unlock()
+}
+
+func listen() (err error) {
+	Server.m.Lock()
+	Server.l, err = net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
+	Server.m.Unlock()
+	return
 }
 
 // Run receives tcp connections and passes them to handler in seperate thread
 func Run(msgCh chan ClientMHandle) {
 	// Listen for incoming connections.
 
-	var err error
-	Server.l, err = net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
+	err := listen()
 	if err != nil {
 		log.Println("Error listening:", err.Error())
 		os.Exit(1)
